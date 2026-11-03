@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>你今年換咗未？換機衝動模擬器</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "PingFang HK", "Microsoft JhengHei", "Noto Sans HK", sans-serif;
+    background: radial-gradient(circle at top, #1f2a44 0%, #0b1020 60%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .game {
+    width: min(980px, 100%);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 28px;
+    padding: 28px 32px 24px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+  }
+  h1 { margin: 0; font-size: clamp(30px, 4.5vw, 54px); letter-spacing: 1px; }
+  .sub { margin: 8px 0 22px; color: #9fb0d0; font-size: clamp(15px, 1.8vw, 20px); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  .stat { background: rgba(255,255,255,0.08); border-radius: 16px; padding: 12px 14px; }
+  .stat span { display: block; color: #9fb0d0; font-size: 14px; margin-bottom: 4px; }
+  .stat strong { font-size: clamp(20px, 2.8vw, 30px); color: #ffd166; }
+  .fresh-label { display: flex; justify-content: space-between; color: #c9d6ee; font-size: 15px; margin-bottom: 6px; }
+  .bar { height: 14px; background: rgba(255,255,255,0.12); border-radius: 999px; overflow: hidden; margin-bottom: 20px; }
+  #freshBar { height: 100%; width: 100%; background: linear-gradient(90deg, #ff7a59, #ffd166); transition: width 0.35s ease; }
+  .card { background: #fff; color: #16213e; border-radius: 22px; padding: 24px 26px; min-height: 150px; box-shadow: 0 16px 40px rgba(0,0,0,0.25); }
+  .card h2 { margin: 0 0 10px; font-size: clamp(24px, 3.2vw, 36px); }
+  .card p { margin: 0; font-size: clamp(17px, 2vw, 22px); line-height: 1.55; color: #3b4a68; }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; }
+  button { border: 0; border-radius: 18px; padding: 18px 20px; font-family: inherit; font-size: clamp(18px, 2.2vw, 24px); font-weight: 700; cursor: pointer; transition: transform 0.15s ease, filter 0.15s ease; }
+  button:hover { transform: translateY(-2px); filter: brightness(1.06); }
+  button:active { transform: translateY(1px); }
+  button small { display: block; font-size: 0.58em; font-weight: 500; margin-top: 6px; opacity: 0.85; }
+  .buy { background: linear-gradient(135deg, #ff6b6b, #ee3d5a); color: #fff; }
+  .keep { background: linear-gradient(135deg, #59d9a2, #22a974); color: #06281b; }
+  .log { margin-top: 18px; min-height: 28px; color: #aebbd4; font-size: 14px; line-height: 1.6; }
+  .result { background: #fff; color: #16213e; border-radius: 22px; padding: 26px; margin-top: 20px; }
+  .result h2 { margin: 0 0 14px; font-size: clamp(26px, 3.4vw, 40px); }
+  .result p { font-size: clamp(17px, 2vw, 22px); line-height: 1.65; color: #3b4a68; }
+  .result strong { color: #d63447; }
+  .hidden { display: none !important; }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .reset { background: rgba(255,255,255,0.12); color: #dbe5f8; font-size: 15px; padding: 12px 18px; border-radius: 12px; }
+  .reroll { background: rgba(255,209,102,0.16); color: #ffd166; font-size: 15px; padding: 12px 18px; border-radius: 12px; border: 1px solid rgba(255,209,102,0.35); }
+  .badge { display: inline-block; margin-left: 10px; font-size: 13px; color: #ffd166; background: rgba(255,209,102,0.14); border: 1px solid rgba(255,209,102,0.3); padding: 3px 10px; border-radius: 999px; vertical-align: middle; }
+  @media (max-width: 640px) {
+    .game { padding: 20px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .choices { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="game">
+  <h1>你今年換咗未？<span class="badge">隨機事件</span></h1>
+  <p class="sub">換機衝動模擬器｜連續 10 年，每次二選一，最後睇你花咗幾多。</p>
+
+  <div class="stats">
+    <div class="stat"><span>年份</span><strong id="year">1 / 10</strong></div>
+    <div class="stat"><span>總支出</span><strong id="spent">$0</strong></div>
+    <div class="stat"><span>換機次數</span><strong id="swaps">0</strong></div>
+    <div class="stat"><span>手機年齡</span><strong id="age">2 年</strong></div>
+  </div>
+
+  <div class="fresh-label">
+    <span>新鮮感</span>
+    <span id="freshVal">100%</span>
+  </div>
+  <div class="bar"><div id="freshBar"></div></div>
+
+  <div class="card" id="card">
+    <h2 id="eventTitle">載入中</h2>
+    <p id="eventDesc"></p>
+  </div>
+
+  <div class="choices" id="choices">
+    <button class="buy" id="buyBtn">換新機 <small id="buyPrice"></small></button>
+    <button class="keep" id="keepBtn">再撐一年 <small id="keepCost"></small></button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <div class="result hidden" id="result">
+    <h2>10 年成績表</h2>
+    <p id="resultText"></p>
+  </div>
+
+  <div class="controls">
+    <button class="reset" id="resetBtn">重新開始（重新抽事件）</button>
+    <button class="reroll" id="rerollBtn">換一批事件（未開始時）</button>
+  </div>
+</div>
+
+<script>
+  /* ===== 事件池：每局隨機抽 9 個，順序亦會打亂 ===== */
+  var eventPool = [
+    {
+      title: "演算法推你睇開箱",
+      desc: "你本來只想睇三分鐘評測，結果連續睇咗半個鐘開箱片。舊機刷社交其實仲好順，但心入面開始痕。",
+      newPrice: 9800, repairCost: 0, keepLabel: "關掉直播"
+    },
+    {
+      title: "一日充三次電",
+      desc: "維修店報價換電 $780，朋友就話：「不如加少少換新啦。」嗰個「少少」其實係九千幾。",
+      newPrice: 9200, repairCost: 780, keepLabel: "換電 $780"
+    },
+    {
+      title: "相簿彈「儲存空間已滿」",
+      desc: "其實入面有一半係重複截圖、模糊相和從來冇再睇嘅影片。清一清，可能仲有位。",
+      newPrice: 8800, repairCost: 0, keepLabel: "刪相清位"
+    },
+    {
+      title: "午飯桌上面的比較",
+      desc: "同事新機放喺枱面，鏡頭多幾粒、顏色靚少少。你部機突然好似唔夠體面，雖然功能完全正常。",
+      newPrice: 10500, repairCost: 0, keepLabel: "放袋唔比較"
+    },
+    {
+      title: "更新後動畫慢半拍",
+      desc: "論壇有人話舊機型被「優化」，你分不清係手機老化，定係新系統本來就為新機而設。",
+      newPrice: 9900, repairCost: 0, keepLabel: "唔追更新"
+    },
+    {
+      title: "夜景模式廣告",
+      desc: "廣告拍到演唱會山頂位都清楚，你想起自己上次拍夜景有啲噪點。但日光下，舊機其實唔差。",
+      newPrice: 11500, repairCost: 0, keepLabel: "日光先算"
+    },
+    {
+      title: "上台「零機價」優惠",
+      desc: "月費加 $88 就話零機價，聽落好似唔使錢。但合約綁兩年，總數其實一樣，只係你唔覺。",
+      newPrice: 9600, repairCost: 0, keepLabel: "計合約總數"
+    },
+    {
+      title: "手機殼店的聯名款",
+      desc: "新機有磁吸殼、支架殼、聯名殼；你部舊機得兩款清貨色。你開始覺得係時候換。",
+      newPrice: 8300, repairCost: 0, keepLabel: "舊殼仲用得"
+    },
+    {
+      title: "回收平台限時加價",
+      desc: "二手平台估你部機值 $1200，仲有個倒數計時話「限時加 $200」。你明知係手法，但心都癢癢。",
+      newPrice: 10200, repairCost: 0, keepLabel: "唔賣繼續用"
+    },
+    {
+      title: "朋友群組晒新機",
+      desc: "群組一晚彈出十幾張新機相，個個都話「今代真係唔同」。你部機冇壞，但突然好似好舊。",
+      newPrice: 10800, repairCost: 0, keepLabel: "唔跟隊"
+    },
+    {
+      title: "打機過熱掉幀",
+      desc: "你玩嘅其實係三年前嘅遊戲，但手機一熱就慢。清一清背景 App、換塊散熱貼，可能仲玩得。",
+      newPrice: 9400, repairCost: 150, keepLabel: "清 App 散熱"
+    },
+    {
+      title: "限量色發布",
+      desc: "新機出咗隻「沙漠鈦金屬」，廣告話好快賣完。你明明已經有殼，但隻色真係好靚。",
+      newPrice: 11800, repairCost: 0, keepLabel: "睇相就算"
+    },
+    {
+      title: "銀行 App 話系統太舊",
+      desc: "個 App 話你系統版本太舊，有啲功能用唔到。其實可能更新系統就得，但你已經開始諗換機。",
+      newPrice: 9700, repairCost: 0, keepLabel: "試更新系統"
+    },
+    {
+      title: "旅行前想換相機",
+      desc: "你下個月去旅行，覺得舊機影夜景唔夠靚。但上次旅行，你九成相都係日光下影。",
+      newPrice: 11200, repairCost: 0, keepLabel: "帶舊機去"
+    },
+    {
+      title: "維修報價好貴",
+      desc: "螢幕跌爆一角，維修報價 $1600。店員話：「加多幾千換新啦，仲有保養。」",
+      newPrice: 10000, repairCost: 1600, keepLabel: "照修 $1600"
+    },
+    {
+      title: "電訊商送耳機",
+      desc: "上台出機送無線耳機，聽落好抵。但你屋企已經有三對耳機，而部舊機仲行得走得。",
+      newPrice: 9500, repairCost: 0, keepLabel: "唔要贈品"
+    },
+    {
+      title: "KOL 開箱洗版",
+      desc: "你訂閱嘅十個頻道，同一星期全部出開箱片。你明知係公關安排，但把聲一直喺腦海盤旋。",
+      newPrice: 10600, repairCost: 0, keepLabel: "取消訂閱"
+    },
+    {
+      title: "螢幕細花",
+      desc: "螢幕有幾條細花，著機之後幾乎睇唔到。你同自己講：「花成咁，係時候換。」但其實仲用得。",
+      newPrice: 8900, repairCost: 0, keepLabel: "貼保護貼"
+    },
+    {
+      title: "年尾購物節",
+      desc: "購物節限定折扣、免息分期、以舊換新三重優惠。你本來冇打算換，但個計時器倒數緊。",
+      newPrice: 9300, repairCost: 0, keepLabel: "關掉購物 App"
+    },
+    {
+      title: "換電池定換機",
+      desc: "電池健康度跌到 79%，換電 $900。店員不斷推薦新機，話舊機「唔止電池問題」。",
+      newPrice: 10100, repairCost: 900, keepLabel: "換電 $900"
+    }
+  ];
+
+  /* 第十年固定結尾 */
+  var finalEvent = {
+    title: "第十年",
+    desc: "螢幕有幾條細花，但通訊、地圖、影日常相仍然夠用。它不是最新款，但唔代表不能用。",
+    newPrice: 10000, repairCost: 0, keepLabel: "繼續用"
+  };
+
+  var events = [];
+  var year = 1;
+  var spent = 0;
+  var swaps = 0;
+  var phoneAge = 2;
+  var freshness = 100;
+  var logs = [];
+
+  function $(id) { return document.getElementById(id); }
+  function money(n) { return "$" + n.toLocaleString("en-US"); }
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function buildEvents() {
+    var picked = shuffle(eventPool).slice(0, 9);
+    events = picked.concat([finalEvent]);
+  }
+
+  function render() {
+    $("year").textContent = Math.min(year, 10) + " / 10";
+    $("spent").textContent = money(spent);
+    $("swaps").textContent = swaps;
+    $("age").textContent = phoneAge + " 年";
+    $("freshVal").textContent = freshness + "%";
+    $("freshBar").style.width = freshness + "%";
+
+    if (year > 10) {
+      $("card").classList.add("hidden");
+      $("choices").classList.add("hidden");
+      $("result").classList.remove("hidden");
+      $("rerollBtn").classList.add("hidden");
+
+      var avg = swaps > 0 ? (10 / (swaps + 1)).toFixed(1) : "10.0";
+      var verdict = "";
+      if (spent < 15000) {
+        verdict = "你部舊機表示非常欣慰。你省落嘅錢，可以去旅行、進修，或者做應急基金。";
+      } else if (spent < 35000) {
+        verdict = "你算理性，但都養活咗幾場發布會。";
+      } else if (spent < 60000) {
+        verdict = "你係忠實粉絲，新鮮感嘅代價唔小。";
+      } else {
+        verdict = "發布會 VIP 座位區。你買嘅可能唔只係手機，而係「即將擁有」嘅感覺。";
+      }
+
+      $("resultText").innerHTML =
+        "10 年總支出：<strong>" + money(spent) + "</strong><br>" +
+        "換機次數：<strong>" + swaps + "</strong> 次<br>" +
+        "平均每部手機用：<strong>" + avg + "</strong> 年<br><br>" +
+        verdict +
+        "<br><br><em>記住：手機不是最新款，並不代表不能使用。</em>";
+
+      $("log").innerHTML = logs.slice(0, 5).join("<br>");
+      return;
+    }
+
+    $("card").classList.remove("hidden");
+    $("choices").classList.remove("hidden");
+    $("result").classList.add("hidden");
+
+    var e = events[year - 1];
+    $("eventTitle").textContent = e.title;
+    $("eventDesc").textContent = e.desc;
+    $("buyBtn").innerHTML = "換新機 <small>" + money(e.newPrice) + "</small>";
+    $("keepBtn").innerHTML = e.keepLabel + " <small>" + (e.repairCost ? money(e.repairCost) : "$0") + "</small>";
+    $("log").innerHTML = logs.slice(0, 4).join("<br>");
+  }
+
+  function chooseBuy() {
+    if (year > 10) return;
+    var e = events[year - 1];
+    spent += e.newPrice;
+    swaps += 1;
+    phoneAge = 0;
+    freshness = 100;
+    logs.unshift("第 " + year + " 年：換新機（" + money(e.newPrice) + "）—— " + e.title);
+    year += 1;
+    render();
+  }
+
+  function chooseKeep() {
+    if (year > 10) return;
+    var e = events[year - 1];
+    spent += e.repairCost;
+    phoneAge += 1;
+    freshness = Math.max(0, freshness - 15);
+    logs.unshift("第 " + year + " 年：" + e.keepLabel + "（" + (e.repairCost ? money(e.repairCost) : "$0") + "）—— " + e.title);
+    year += 1;
+    render();
+  }
+
+  function resetGame() {
+    year = 1;
+    spent = 0;
+    swaps = 0;
+    phoneAge = 2;
+    freshness = 100;
+    logs = [];
+    buildEvents();
+    $("rerollBtn").classList.remove("hidden");
+    render();
+  }
+
+  function rerollEvents() {
+    if (year !== 1 || spent !== 0 || swaps !== 0) return;
+    buildEvents();
+    render();
+  }
+
+  document.getElementById("buyBtn").addEventListener("click", chooseBuy);
+  document.getElementById("keepBtn").addEventListener("click", chooseKeep);
+  document.getElementById("resetBtn").addEventListener("click", resetGame);
+  document.getElementById("rerollBtn").addEventListener("click", rerollEvents);
+
+  resetGame();
+</script>
+</body>
+</html>
